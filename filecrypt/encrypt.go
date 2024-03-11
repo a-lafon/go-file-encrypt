@@ -9,25 +9,19 @@ import (
 )
 
 func Encrypt(filePath string, password []byte) error {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	plainText, err := io.ReadAll(file)
+	plainText, err := readFile(filePath)
 	if err != nil {
 		return err
 	}
 
-	salt := make([]byte, 12)
+	nonce := make([]byte, 12)
 
-	_, err = io.ReadFull(rand.Reader, salt)
+	_, err = io.ReadFull(rand.Reader, nonce)
 	if err != nil {
 		return err
 	}
 
-	derivedKey := generateDerivedKey(password, salt)
+	derivedKey := generateDerivedKey(password, nonce)
 
 	block, err := aes.NewCipher(derivedKey)
 	if err != nil {
@@ -39,8 +33,8 @@ func Encrypt(filePath string, password []byte) error {
 		return err
 	}
 
-	cipherText := aesgcm.Seal(nil, salt, plainText, nil)
-	cipherText = append(cipherText, salt...)
+	cipherText := aesgcm.Seal(nil, nonce, plainText, nil)
+	cipherText = append(cipherText, nonce...)
 
 	dstFile, err := os.Create(filePath)
 	if err != nil {

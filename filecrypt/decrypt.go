@@ -3,26 +3,18 @@ package filecrypt
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"io"
 	"os"
 )
 
 func Decrypt(filePath string, password []byte) error {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	cipherText, err := io.ReadAll(file)
+	cipherText, err := readFile(filePath)
 	if err != nil {
 		return err
 	}
 
-	salt := cipherText[len(cipherText)-12:]
-	cipherText = cipherText[:len(cipherText)-12]
+	cipherText, nonce := extractNonceFromCipherText(cipherText)
 
-	derivedKey := generateDerivedKey(password, salt)
+	derivedKey := generateDerivedKey(password, nonce)
 
 	block, err := aes.NewCipher(derivedKey)
 	if err != nil {
@@ -34,7 +26,7 @@ func Decrypt(filePath string, password []byte) error {
 		return err
 	}
 
-	plainText, err := aesgcm.Open(nil, salt, cipherText, nil)
+	plainText, err := aesgcm.Open(nil, nonce, cipherText, nil)
 	if err != nil {
 		return err
 	}
@@ -51,4 +43,10 @@ func Decrypt(filePath string, password []byte) error {
 	}
 
 	return nil
+}
+
+func extractNonceFromCipherText(cipherText []byte) ([]byte, []byte) {
+	nonce := cipherText[len(cipherText)-12:]
+	cipherText = cipherText[:len(cipherText)-12]
+	return cipherText, nonce
 }
