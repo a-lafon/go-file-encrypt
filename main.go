@@ -1,6 +1,7 @@
 package main
 
 import (
+	"a-lafon/go-file-encrypt/filecrypt"
 	"bytes"
 	"errors"
 	"fmt"
@@ -17,7 +18,7 @@ func main() {
 		os.Exit(0)
 	}
 	command := os.Args[1]
-	fmt.Println(command)
+
 	switch command {
 	case "encrypt":
 		execEncrypt()
@@ -38,10 +39,16 @@ func execEncrypt() {
 	if !isValidFile(file) {
 		log.Fatalln("file not found")
 	}
-	fmt.Println(file)
 
 	password := getPassword()
-	fmt.Println(password)
+	fmt.Println("\n\nEncrypting ...")
+
+	err := filecrypt.Encrypt(file, password)
+	if err != nil {
+		log.Fatalln("error on file encryption", err)
+	}
+
+	color.Green("\nFile sucessfully encrypted")
 }
 
 func isValidFile(file string) bool {
