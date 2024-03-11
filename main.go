@@ -25,6 +25,7 @@ func main() {
 	case "decrypt":
 		execDecrypt()
 	default:
+		color.Yellow("\nCommand not found\n\n")
 		printHelp()
 	}
 }
@@ -91,7 +92,26 @@ func isPasswordMatching(password []byte, password2 []byte) bool {
 }
 
 func execDecrypt() {
+	if len(os.Args) < 3 {
+		log.Fatalln("file path must be specified. For more info run help command")
+	}
 
+	file := os.Args[2]
+
+	if !isValidFile(file) {
+		log.Fatalln("file not found")
+	}
+	fmt.Print("\nEnter password: ")
+	password, _ := term.ReadPassword(0)
+
+	fmt.Println("\n\nDecrypting ...")
+
+	err := filecrypt.Decrypt(file, password)
+	if err != nil {
+		log.Fatalln("error on file decryption", err)
+	}
+
+	color.Green("\nFile sucessfully decrypted")
 }
 
 func printHelp() {

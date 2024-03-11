@@ -3,29 +3,24 @@ package filecrypt
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
 	"io"
 	"os"
 )
 
-func Encrypt(filePath string, password []byte) error {
+func Decrypt(filePath string, password []byte) error {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	plainText, err := io.ReadAll(file)
+	cipherText, err := io.ReadAll(file)
 	if err != nil {
 		return err
 	}
 
-	salt := make([]byte, 12)
-
-	_, err = io.ReadFull(rand.Reader, salt)
-	if err != nil {
-		return err
-	}
+	salt := cipherText[len(cipherText)-12:]
+	cipherText = cipherText[:len(cipherText)-12]
 
 	derivedKey := generateDerivedKey(password, salt)
 
@@ -39,17 +34,18 @@ func Encrypt(filePath string, password []byte) error {
 		return err
 	}
 
-	cipherText := aesgcm.Seal(nil, salt, plainText, nil)
-	cipherText = append(cipherText, salt...)
+	plainText, err := aesgcm.Open(nil, salt, cipherText, nil)
+	if err != nil {
+		return err
+	}
 
 	dstFile, err := os.Create(filePath)
 	if err != nil {
 		return err
 	}
-
 	defer dstFile.Close()
 
-	_, err = dstFile.Write(cipherText)
+	_, err = dstFile.Write(plainText)
 	if err != nil {
 		return err
 	}
